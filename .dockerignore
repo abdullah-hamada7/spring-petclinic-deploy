@@ -1,0 +1,23 @@
+# Ignore git repo metadata
+.git
+.gitignore
+
+# Maven target (we build inside Docker)
+target/
+
+# Docker-related files not needed in image
+docker-compose*.yml
+.dockerignore
+.env
+secrets/
+certs/
+configs/
+nginx/
+mysql_data/
+
+# IDE / Editor
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
