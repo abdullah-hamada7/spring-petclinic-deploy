@@ -1,0 +1,56 @@
+services:
+  app:
+    environment:
+      SPRING_PROFILES_ACTIVE: dev  
+    secrets:
+      - mysql_password
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql
+    container_name: mysql
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    secrets:
+      - mysql_password
+      - mysql_root_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - backend
+
+  mysqld-exporter:
+    image: prom/mysqld-exporter
+    container_name: mysqld-exporter
+    volumes:
+      - ./secrets/.my.cnf:/etc/.my.cnf:ro
+    command: [ "--config.my-cnf=/etc/.my.cnf" ]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+
+volumes:
+  mysql_data:
+
+secrets:
+  mysql_password:
+    file: ./secrets/mysql_password.txt
+  mysql_root_password:
+    file: ./secrets/mysql_root_password.txt
+
+networks:
+  backend:
+    name: spring-petclinic-backend
+    external: true

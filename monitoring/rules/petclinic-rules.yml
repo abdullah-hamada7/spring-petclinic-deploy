@@ -1,0 +1,29 @@
+groups:
+  - name: petclinic-alerts
+    rules:
+      - alert: PetclinicDown
+        expr: up{job="spring-petclinic"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PetClinic service is DOWN"
+          description: "PetClinic app is not responding on port 8080."
+
+      - alert: HighRequestLatency
+        expr: rate(http_server_requests_seconds_sum[1m]) / rate(http_server_requests_seconds_count[1m]) > 2
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Request Latency"
+          description: "Average HTTP latency > 2s for Spring PetClinic."
+
+      - alert: MySQLDown
+        expr: up{job="mysql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MySQL service is DOWN"
+          description: "MySQL is not responding on port 3306."

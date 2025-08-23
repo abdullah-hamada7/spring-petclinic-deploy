@@ -1,0 +1,31 @@
+global:
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'chief.abdullah14@gmail.com'
+  smtp_auth_username: 'chief.abdullah14@gmail.com'
+  smtp_auth_password: 'nrpsulvogdkhzymv'
+  smtp_require_tls: true
+
+route:
+  receiver: email-team
+  group_by: ['alertname']
+  group_wait: 15s         
+  group_interval: 5m      
+  repeat_interval: 3h     
+
+receivers:
+  - name: email-team
+    email_configs:
+      - to: 'chief.abdullah14@gmail.com'
+        send_resolved: true
+        require_tls: true
+        headers:
+          subject: '[Prometheus Alert] {{ .CommonLabels.alertname }}'
+        html: |
+          <h3>Prometheus Alert: {{ .CommonLabels.alertname }}</h3>
+          <p><b>Severity:</b> {{ .CommonLabels.severity }}</p>
+          <p><b>Description:</b> {{ .Annotations.description }}</p>
+          <p><b>Instance:</b> {{ .CommonLabels.instance }}</p>
+          <p><b>Time:</b> {{ .StartsAt }}</p>
+
+templates:
+  - "/etc/alertmanager/templates/*.tmpl"

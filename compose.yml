@@ -1,0 +1,81 @@
+---
+services:
+  app:
+    image: abdullahhamada7/spring-petclinic:latest
+    container_name: spring-petclinic
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - backend
+      - frontend
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    configs:
+      - source: nginx_config
+        target: /etc/nginx/nginx.conf
+    volumes:
+      - ./certs/nginx.crt:/etc/nginx/certs/nginx.crt:ro
+      - ./certs/nginx.key:/etc/nginx/certs/nginx.key:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - backend
+      - frontend
+
+  prometheus:
+    image: prom/prometheus:v2.33.5
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules:/etc/prometheus/rules:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - backend
+
+  alertmanager:
+    image: prom/alertmanager:v0.23.0
+    container_name: alertmanager
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    networks:
+      - backend
+
+  grafana:
+    image: grafana/grafana:8.4.3
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./monitoring/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD}
+    networks:
+      - backend
+
+configs:
+  nginx_config:
+    file: ./nginx/nginx.conf
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    name: spring-petclinic-backend
+    driver: bridge
