@@ -8,7 +8,7 @@ groups:
           severity: critical
         annotations:
           summary: "PetClinic service is DOWN"
-          description: "PetClinic app is not responding on port 8080."
+          description: "Spring PetClinic app is not responding on port 8080."
 
       - alert: HighRequestLatency
         expr: rate(http_server_requests_seconds_sum[1m]) / rate(http_server_requests_seconds_count[1m]) > 2
@@ -19,6 +19,16 @@ groups:
           summary: "High Request Latency"
           description: "Average HTTP latency > 2s for Spring PetClinic."
 
+      - alert: HighErrorRate
+        expr: (sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (job)) 
+              / (sum(rate(http_server_requests_seconds_count[5m])) by (job)) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx Error Rate"
+          description: "Spring PetClinic is returning >5% errors in the last 5 minutes."
+
       - alert: MySQLDown
         expr: up{job="mysql"} == 0
         for: 1m
@@ -27,3 +37,67 @@ groups:
         annotations:
           summary: "MySQL service is DOWN"
           description: "MySQL is not responding on port 3306."
+
+      - alert: MySQLHighConnections
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High MySQL Connections"
+          description: "More than 80% of MySQL connections are used."
+
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL service is DOWN"
+          description: "PostgreSQL is not responding on port 5432."
+
+      - alert: PostgresReplicationLag
+        expr: pg_replication_lag > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Postgres Replication Lag High"
+          description: "Replication lag exceeded 10 seconds."
+
+      - alert: NginxHighErrorRate
+        expr: sum(rate(nginx_vts_server_requests_total{code=~"5.."}[5m])) 
+              / sum(rate(nginx_vts_server_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Nginx High Error Rate"
+          description: "Nginx 5xx error rate is greater than 5%."
+
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total[1m]) > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container High CPU Usage"
+          description: "Container CPU usage exceeded 80%."
+
+      - alert: ContainerHighMemory
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container High Memory Usage"
+          description: "Container memory usage exceeded 80%."
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs"} / node_filesystem_size_bytes{fstype!~"tmpfs"}) < 0.15
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low Disk Space"
+          description: "Less than 15% of disk space is available."

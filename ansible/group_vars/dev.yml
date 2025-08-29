@@ -1,0 +1,15 @@
+# App configs
+app_image: abdullahhamada7/spring-petclinic:latest
+app_container: spring-petclinic
+app_port: 8080
+
+# MySQL configs
+mysql_image: mysql
+mysql_container: mysql
+mysql_database: petclinic
+mysql_user: petclinic
+mysql_password_file: mysql_password.txt
+mysql_root_password_file: mysql_root_password.txt
+
+# Docker configs
+project_dir: /opt/spring-petclinic

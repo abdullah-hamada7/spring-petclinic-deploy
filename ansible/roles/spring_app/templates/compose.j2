@@ -1,0 +1,42 @@
+services:
+  app:
+    image: {{ app_image }}
+    container_name: {{ app_container }}
+    ports:
+      - "{{ app_port }}:{{ app_port }}"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: {{ mysql_image }}
+    container_name: {{ mysql_container }}
+    environment:
+      MYSQL_DATABASE: {{ mysql_database }}
+      MYSQL_USER: {{ mysql_user }}
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    secrets:
+      - mysql_password
+      - mysql_root_password
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u {{ mysql_user }} -p$(cat /run/secrets/mysql_password)"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  mysql_data:
+
+secrets:
+  mysql_password:
+    file: ./secrets/mysql_password.txt
+  mysql_root_password:
+    file: ./secrets/mysql_root_password.txt

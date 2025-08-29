@@ -1,0 +1,56 @@
+---
+- name: Install and configure Docker
+  import_tasks: docker.yml
+
+- name: Create project directory
+  ansible.builtin.file:
+    path: "{{ project_dir }}"
+    state: directory
+    owner: vagrant
+    group: vagrant
+    mode: "0755"
+
+- name: Copy docker-compose template
+  ansible.builtin.template:
+    src: compose.j2
+    dest: "{{ project_dir }}/compose.yml"
+    owner: vagrant
+    group: vagrant
+    mode: "0644"
+
+- name: Ensure secrets directory exists
+  file:
+    path: /opt/spring-petclinic/secrets
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+    
+- name: Copy mysql_password.txt secret file
+  ansible.builtin.copy:
+    content: "{{ mysql_password_file }}"
+    dest: "{{ project_dir }}/secrets/mysql_password.txt"
+    owner: vagrant
+    group: vagrant
+    mode: "0600"
+
+- name: Copy mysql_root_password.txt secret file
+  ansible.builtin.copy:
+    content: "{{ mysql_root_password_file }}"
+    dest: "{{ project_dir }}/secrets/mysql_root_password.txt"
+    owner: vagrant
+    group: vagrant
+    mode: "0600"
+
+- name: Copy .env file
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../.env"
+    dest: "{{ project_dir }}/.env"
+    owner: vagrant
+    group: vagrant
+    mode: "0600"
+
+- name: Start application with Docker Compose v2
+  community.docker.docker_compose_v2:
+    project_src: "{{ project_dir }}"
+    state: present

@@ -1,0 +1,7 @@
+- name: Deploy Spring Petclinic using Docker Compose
+  hosts: petclinic
+  become: true
+  vars_files:
+    - group_vars/dev.yml
+  roles:
+    - spring_app

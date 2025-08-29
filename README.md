@@ -112,7 +112,7 @@ docker compose -f compose.prod.yml -f compose.yml --env-file .env.prod --env-fil
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/abdullahhamada7/spring-petclinic-docker.git
+git clone https://github.com/abdullahhamada7/spring-petclinic-deploy.git
 cd spring-petclinic-docker
 ```
 
