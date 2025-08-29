@@ -127,3 +127,5 @@ vagrant destroy -f
 * **Ansible** - Automation & configuration management
 * **Docker Compose** - Multi-container orchestration
 * **Spring Petclinic** - Demo application
+
+![screenshot](demo.png)

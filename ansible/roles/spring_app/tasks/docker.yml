@@ -1,22 +1,15 @@
 ---
-- name: Ensure DNS is set to avoid apt issues
-  ansible.builtin.lineinfile:
-    path: /etc/resolv.conf
-    regexp: '^nameserver'
-    line: 'nameserver 8.8.8.8'
-    insertafter: BOF
+- name: Ensure /etc/resolv.conf has correct DNS
+  ansible.builtin.copy:
+    dest: /etc/resolv.conf
+    content: |
+      nameserver 8.8.8.8
+      nameserver 8.8.4.4
+    owner: root
+    group: root
+    mode: '0644'
 
-- name: Clean apt cache and update package lists
-  ansible.builtin.apt:
-    update_cache: yes
-    force_apt_get: yes
-    cache_valid_time: 3600
-  retries: 5
-  delay: 5
-  register: apt_update
-  until: apt_update is succeeded
-  
-- name: Remove apt locks if necessary
+- name: Remove any apt locks
   ansible.builtin.shell: |
     rm -f /var/lib/apt/lists/lock
     rm -f /var/cache/apt/archives/lock
@@ -26,7 +19,17 @@
     executable: /bin/bash
   changed_when: false
 
-- name: Install required packages for Docker
+- name: Update apt cache (retry if fails)
+  ansible.builtin.apt:
+    update_cache: yes
+    force_apt_get: yes
+    cache_valid_time: 3600
+  retries: 5
+  delay: 10
+  register: apt_update
+  until: apt_update is succeeded
+
+- name: Install prerequisites for Docker
   ansible.builtin.apt:
     name:
       - ca-certificates
@@ -35,28 +38,22 @@
       - lsb-release
     state: present
     update_cache: yes
-    force_apt_get: yes
-  retries: 5
-  delay: 5
-  register: apt_install
-  until: apt_install is succeeded
 
-- name: Create Docker GPG keyrings directory
+- name: Create /etc/apt/keyrings
   ansible.builtin.file:
     path: /etc/apt/keyrings
     state: directory
     mode: '0755'
 
-- name: Download Docker's official GPG key
+- name: Add Docker GPG key
   ansible.builtin.get_url:
     url: https://download.docker.com/linux/ubuntu/gpg
     dest: /etc/apt/keyrings/docker.asc
     mode: '0644'
-    force: yes
 
 - name: Add Docker repository
   ansible.builtin.apt_repository:
-    repo: "deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
     state: present
     update_cache: yes
 
@@ -69,14 +66,31 @@
       - docker-compose-plugin
     state: present
     update_cache: yes
-    force_apt_get: yes
-  retries: 5
-  delay: 5
-  register: docker_install
-  until: docker_install is succeeded
 
-- name: Enable and start Docker service
+- name: Ensure Docker service is started and enabled
   ansible.builtin.service:
     name: docker
     state: started
     enabled: yes
+
+- name: Ensure /etc/docker directory exists
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure Docker daemon DNS
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "dns": ["8.8.8.8","8.8.4.4"]
+      }
+    mode: "0644"
+
+- name: Restart Docker to apply DNS changes
+  ansible.builtin.service:
+    name: docker
+    state: restarted
